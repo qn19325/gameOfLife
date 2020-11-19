@@ -13,6 +13,7 @@ type distributorChannels struct {
 	ioFilename chan<- string
 	ioOutput   chan<- uint8
 	ioInput    <-chan uint8
+	aliveCells chan []util.Cell
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -48,6 +49,31 @@ func distributor(p Params, c distributorChannels) {
 	}
 
 	// TODO: Execute all turns of the Game of Life.
+	tempWorld := make([][]byte, p.ImageHeight)
+	for i := range tempWorld {
+		tempWorld[i] = make([]byte, p.ImageWidth)
+	}
+
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			neighbours := aliveNeighbours(world, x, y, p)
+
+			if world[y][x] == 1 {
+				if neighbours == 2 || neighbours == 3 {
+					tempWorld[y][x] = 1
+				} else {
+					tempWorld[y][x] = 0
+				}
+			} else {
+				if neighbours == 3 {
+					tempWorld[y][x] = 1
+				} else {
+					tempWorld[y][x] = 0
+				}
+			}
+		}
+	}
+
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	//		 See event.go for a list of all events.
 
