@@ -35,7 +35,6 @@ func distributor(p Params, c distributorChannels) {
 	aliveCells := make([]util.Cell, 0)   // create aliveCells slice
 	for y := 0; y < p.ImageHeight; y++ { // go through all cells in world
 		for x := 0; x < p.ImageWidth; x++ {
-			// need way to see if current cell is alive
 			val := <-c.ioInput
 			if val != 0 {
 				aliveCells = append(aliveCells, util.Cell{X: x, Y: y}) // adds current cell to the aliveCells slice
@@ -50,51 +49,55 @@ func distributor(p Params, c distributorChannels) {
 
 	c.events <- TurnComplete{turn}
 
-	// TODO: Execute all turns of the Game of Life.
 	tempWorld := make([][]byte, p.ImageHeight)
-	for i := range tempWorld {
+	for i := range world {
 		tempWorld[i] = make([]byte, p.ImageWidth)
 	}
 
-	currentAliveCells := make([]util.Cell, 0)
-
-	for currentTurn := 1; currentTurn < p.Turns; currentTurn++ {
+	for turns := 0; turns < p.Turns; turns++ {
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
-				neighbours := aliveNeighbours(world, x, y, p)
-				if world[y][x] == 1 {
-					if neighbours == 2 || neighbours == 3 {
+				numAliveNeighbours := aliveNeighbours(world, y, x, p)
+				if world[y][x] != 0 {
+					if numAliveNeighbours == 2 || numAliveNeighbours == 3 {
 						tempWorld[y][x] = 1
-						currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y})
 					} else {
 						tempWorld[y][x] = 0
-						c.events <- CellFlipped{turn, util.Cell{X: x, Y: y}}
+						c.events <- CellFlipped{turns, util.Cell{Y: y, X: x}}
 					}
 				} else {
-					if neighbours == 3 {
+					if numAliveNeighbours == 3 {
 						tempWorld[y][x] = 1
-						currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y})
 					} else {
 						tempWorld[y][x] = 0
+						c.events <- CellFlipped{turns, util.Cell{Y: y, X: x}}
 					}
 				}
 			}
 		}
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
-				// Replace placeholder nextWorld[y][x] with the real world[y][x]
-				world[y][x] = tempWorld[y][x]
+				if world[y][x] != tempWorld[y][x] {
+					world[y][x] = tempWorld[y][x]
+				}
 			}
 		}
-		turn = currentTurn
-		c.events <- TurnComplete{turn}
+		c.events <- TurnComplete{turns}
 	}
 
-	for _, cell := range currentAliveCells {
-		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
+	finalAliveCells := make([]util.Cell, 0)
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			if world[y][x] == 1 {
+				cell := util.Cell{Y: y, X: x}
+				finalAliveCells = append(finalAliveCells, cell)
+			}
+		}
 	}
 
-	c.events <- FinalTurnComplete{turn, currentAliveCells}
+	c.events <- FinalTurnComplete{p.Turns, finalAliveCells}
+
+	// TODO: Execute all turns of the Game of Life.
 
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	//		 See event.go for a list of all events.
@@ -103,7 +106,7 @@ func distributor(p Params, c distributorChannels) {
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
 
-	c.events <- StateChange{turn, Quitting}
+	c.events <- StateChange{p.Turns, Quitting}
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
 }
