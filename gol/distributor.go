@@ -47,7 +47,8 @@ func distributor(p Params, c distributorChannels) {
 		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
 	}
 
-	c.events <- TurnComplete{turn}
+	c.events <- TurnComplete{(turn)}
+	c.events <- FinalTurnComplete{turn, aliveCells}
 
 	tempWorld := make([][]byte, p.ImageHeight)
 	for i := range world {
@@ -55,6 +56,7 @@ func distributor(p Params, c distributorChannels) {
 	}
 
 	for turns := 0; turns < p.Turns; turns++ {
+		c.events <- TurnComplete{turns}
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
 				numAliveNeighbours := aliveNeighbours(world, y, x, p)
@@ -82,7 +84,6 @@ func distributor(p Params, c distributorChannels) {
 				}
 			}
 		}
-		c.events <- TurnComplete{turns}
 	}
 
 	finalAliveCells := make([]util.Cell, 0)
