@@ -48,7 +48,7 @@ func distributor(p Params, c distributorChannels) {
 		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
 	}
 
-	c.events <- FinalTurnComplete{turn, aliveCells}
+	c.events <- TurnComplete{turn}
 
 	// TODO: Execute all turns of the Game of Life.
 	tempWorld := make([][]byte, p.ImageHeight)
@@ -56,25 +56,45 @@ func distributor(p Params, c distributorChannels) {
 		tempWorld[i] = make([]byte, p.ImageWidth)
 	}
 
-	for y := 0; y < p.ImageHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			neighbours := aliveNeighbours(world, x, y, p)
+	currentAliveCells := make([]util.Cell, 0)
 
-			if world[y][x] == 1 {
-				if neighbours == 2 || neighbours == 3 {
-					tempWorld[y][x] = 1
+	for currentTurn := 1; currentTurn < p.Turns; currentTurn++ {
+		for y := 0; y < p.ImageHeight; y++ {
+			for x := 0; x < p.ImageWidth; x++ {
+				neighbours := aliveNeighbours(world, x, y, p)
+				if world[y][x] == 1 {
+					if neighbours == 2 || neighbours == 3 {
+						tempWorld[y][x] = 1
+						currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y})
+					} else {
+						tempWorld[y][x] = 0
+						c.events <- CellFlipped{turn, util.Cell{X: x, Y: y}}
+					}
 				} else {
-					tempWorld[y][x] = 0
-				}
-			} else {
-				if neighbours == 3 {
-					tempWorld[y][x] = 1
-				} else {
-					tempWorld[y][x] = 0
+					if neighbours == 3 {
+						tempWorld[y][x] = 1
+						currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y})
+					} else {
+						tempWorld[y][x] = 0
+					}
 				}
 			}
 		}
+		for y := 0; y < p.ImageHeight; y++ {
+			for x := 0; x < p.ImageWidth; x++ {
+				// Replace placeholder nextWorld[y][x] with the real world[y][x]
+				world[y][x] = tempWorld[y][x]
+			}
+		}
+		turn = currentTurn
+		c.events <- TurnComplete{turn}
 	}
+
+	for _, cell := range currentAliveCells {
+		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
+	}
+
+	c.events <- FinalTurnComplete{turn, currentAliveCells}
 
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	//		 See event.go for a list of all events.
