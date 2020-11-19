@@ -47,6 +47,8 @@ func distributor(p Params, c distributorChannels) {
 		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
 	}
 
+	c.events <- FinalTurnComplete{turn, aliveCells}
+
 	// TODO: Execute all turns of the Game of Life.
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	//		 See event.go for a list of all events.
