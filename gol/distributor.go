@@ -48,6 +48,8 @@ func distributor(p Params, c distributorChannels) {
 		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
 	}
 
+	c.events <- FinalTurnComplete{turn, aliveCells}
+
 	// TODO: Execute all turns of the Game of Life.
 	tempWorld := make([][]byte, p.ImageHeight)
 	for i := range tempWorld {
