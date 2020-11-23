@@ -13,7 +13,6 @@ type distributorChannels struct {
 	ioFilename chan<- string
 	ioOutput   chan<- uint8
 	ioInput    <-chan uint8
-	aliveCells chan []util.Cell
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -32,23 +31,21 @@ func distributor(p Params, c distributorChannels) {
 	c.ioFilename <- filename                                      // sends file name to the fileName channel
 
 	turn := 0
-	aliveCells := make([]util.Cell, 0)   // create aliveCells slice
-	for y := 0; y < p.ImageHeight; y++ { // go through all cells in world
+
+	currentAliveCells := make([]util.Cell, 0) // create aliveCells slice
+	for y := 0; y < p.ImageHeight; y++ {      // go through all cells in world
 		for x := 0; x < p.ImageWidth; x++ {
 			val := <-c.ioInput
 			if val != 0 {
-				aliveCells = append(aliveCells, util.Cell{X: x, Y: y}) // adds current cell to the aliveCells slice
-				world[y][x] = val                                      // update value of current cell
+				currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y}) // adds current cell to the aliveCells slice
+				world[y][x] = 1                                                      // update value of current cell
 			}
 		}
 	}
 
-	for _, cell := range aliveCells {
+	for _, cell := range currentAliveCells {
 		c.events <- CellFlipped{turn, cell} // sends CellFlipped event for all alive cells
 	}
-
-	c.events <- TurnComplete{(turn)}
-	c.events <- FinalTurnComplete{turn, aliveCells}
 
 	tempWorld := make([][]byte, p.ImageHeight)
 	for i := range world {
@@ -56,7 +53,6 @@ func distributor(p Params, c distributorChannels) {
 	}
 
 	for turns := 0; turns < p.Turns; turns++ {
-		c.events <- TurnComplete{turns}
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
 				numAliveNeighbours := aliveNeighbours(world, y, x, p)
@@ -70,9 +66,9 @@ func distributor(p Params, c distributorChannels) {
 				} else {
 					if numAliveNeighbours == 3 {
 						tempWorld[y][x] = 1
+						c.events <- CellFlipped{turns, util.Cell{Y: y, X: x}}
 					} else {
 						tempWorld[y][x] = 0
-						c.events <- CellFlipped{turns, util.Cell{Y: y, X: x}}
 					}
 				}
 			}
@@ -84,6 +80,7 @@ func distributor(p Params, c distributorChannels) {
 				}
 			}
 		}
+		c.events <- TurnComplete{turns}
 	}
 
 	finalAliveCells := make([]util.Cell, 0)
