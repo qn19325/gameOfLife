@@ -21,7 +21,7 @@ func splitWorld(world [][]byte, workerHeight int, p Params, currentThread int) [
 		tempWorld[row] = make([]byte, p.ImageWidth)
 	}
 
-	for y := 0; y < workerHeight+2; y++ {
+	for y := 0; y < workerHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			if y == 0 {
 				previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
@@ -39,7 +39,7 @@ func splitWorld(world [][]byte, workerHeight int, p Params, currentThread int) [
 }
 
 func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut chan<- byte, workerHeight int) {
-	tempWorld := make([][]byte, workerHeight+2)
+	tempWorld := make([][]byte, p.ImageHeight+2)
 	for i := range world {
 		tempWorld[i] = make([]byte, p.ImageWidth)
 	}
