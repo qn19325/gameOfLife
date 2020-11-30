@@ -18,3 +18,51 @@ func aliveNeighbours(world [][]byte, y, x int, p Params) int {
 	}
 	return neighbours
 }
+
+func splitWorld(world [][]byte, workerHeight int, p Params, currentThread int) [][]byte {
+	tempWorld := make([][]byte, workerHeight+2)
+	for row := range tempWorld {
+		tempWorld[row] = make([]byte, p.ImageWidth)
+	}
+
+	for x := 0; x < p.ImageWidth; x++ {
+		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
+		tempWorld[0][x] = world[previousRow][x]
+	}
+	for x := 0; x < p.ImageWidth; x++ {
+		nextRow := ((currentThread+1)*workerHeight + p.ImageHeight) % p.ImageHeight
+		tempWorld[workerHeight+1][x] = world[nextRow][x]
+	}
+	for y := 1; y <= workerHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			currentRow := currentThread*workerHeight + y - 1
+			tempWorld[y][x] = world[currentRow][x]
+		}
+	}
+
+	return tempWorld
+}
+
+func splitWorldLastThread(world [][]byte, workerHeight, workerHeightWithRemainder int, p Params, currentThread int) [][]byte {
+	tempWorld := make([][]byte, workerHeightWithRemainder+2)
+	for row := range tempWorld {
+		tempWorld[row] = make([]byte, p.ImageWidth)
+	}
+
+	for x := 0; x < p.ImageWidth; x++ {
+		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
+		tempWorld[0][x] = world[previousRow][x]
+	}
+	for x := 0; x < p.ImageWidth; x++ {
+		nextRow := 0
+		tempWorld[workerHeightWithRemainder+1][x] = world[nextRow][x]
+	}
+	for y := 1; y <= workerHeightWithRemainder; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			currentRow := currentThread*workerHeight + y - 1
+			tempWorld[y][x] = world[currentRow][x]
+		}
+	}
+
+	return tempWorld
+}

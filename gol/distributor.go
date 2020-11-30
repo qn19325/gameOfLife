@@ -15,30 +15,6 @@ type distributorChannels struct {
 	ioInput    <-chan uint8
 }
 
-func splitWorld(world [][]byte, workerHeight int, p Params, currentThread int) [][]byte {
-	tempWorld := make([][]byte, workerHeight+2)
-	for row := range tempWorld {
-		tempWorld[row] = make([]byte, p.ImageWidth)
-	}
-
-	for x := 0; x < p.ImageWidth; x++ {
-		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
-		tempWorld[0][x] = world[previousRow][x]
-	}
-	for x := 0; x < p.ImageWidth; x++ {
-		nextRow := ((currentThread+1)*workerHeight + p.ImageHeight) % p.ImageHeight
-		tempWorld[workerHeight+1][x] = world[nextRow][x]
-	}
-	for y := 1; y <= workerHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			currentRow := currentThread*workerHeight + y - 1
-			tempWorld[y][x] = world[currentRow][x]
-		}
-	}
-
-	return tempWorld
-}
-
 func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut chan<- byte, workerHeight int) {
 	tempWorld := make([][]byte, p.ImageHeight+2)
 	for i := range world {
@@ -109,26 +85,42 @@ func distributor(p Params, c distributorChannels) {
 	for turns := 0; turns < p.Turns; turns++ {
 		workerOut := make([]chan byte, p.Threads)
 		workerHeight := p.ImageHeight / p.Threads
+		remainderHeight := p.ImageHeight % p.Threads
 
 		for thread := 0; thread < p.Threads; thread++ {
 			var currentSplit [][]byte
+
+			workerHeightWithRemainder := workerHeight + remainderHeight
 			workerOut[thread] = make(chan byte)
-			currentSplit = splitWorld(world, workerHeight, p, thread)
-			go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight)
+
+			if thread == p.Threads-1 {
+				currentSplit = splitWorldLastThread(world, workerHeight, workerHeightWithRemainder, p, thread)
+				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeightWithRemainder)
+			} else {
+				currentSplit = splitWorld(world, workerHeight, p, thread)
+				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight)
+			}
 
 		}
 		for thread := 0; thread < p.Threads; thread++ {
-			newSplit := make([][]byte, workerHeight)
+			var splitHeight int
+			if thread == (p.Threads-1) && remainderHeight > 0 {
+				splitHeight = workerHeight + remainderHeight
+			} else {
+				splitHeight = workerHeight
+			}
+
+			newSplit := make([][]byte, splitHeight)
 			for i := range newSplit {
 				newSplit[i] = make([]byte, p.ImageWidth)
 			}
 
-			for y := 0; y < workerHeight; y++ {
+			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {
 					newSplit[y][x] = <-workerOut[thread]
 				}
 			}
-			for y := 0; y < workerHeight; y++ {
+			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {
 					world[thread*workerHeight+y][x] = newSplit[y][x]
 				}
