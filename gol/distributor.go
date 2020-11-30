@@ -2,6 +2,7 @@ package gol
 
 import (
 	"fmt"
+	"time"
 
 	"uk.ac.bris.cs/gameoflife/util"
 )
@@ -82,7 +83,28 @@ func distributor(p Params, c distributorChannels) {
 
 	// implement for left over pixels using mod e.g. 256 not divisible by 5 threads
 
+	ticker := time.NewTicker(2 * time.Second)
+
 	for turns := 0; turns < p.Turns; turns++ {
+		select {
+		case <-ticker.C:
+			aliveCellsNum := 0
+			for y := 0; y < p.ImageHeight; y++ {
+				for x := 0; x < p.ImageWidth; x++ {
+					if world[y][x] == 255 {
+						aliveCellsNum++
+					}
+				}
+			}
+
+			c.events <- AliveCellsCount{
+				CompletedTurns: turns,
+				CellsCount:     aliveCellsNum,
+			}
+
+		default:
+		}
+
 		workerOut := make([]chan byte, p.Threads)
 		workerHeight := p.ImageHeight / p.Threads
 		remainderHeight := p.ImageHeight % p.Threads
