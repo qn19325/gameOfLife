@@ -6,6 +6,14 @@ func mod(x, m int) int {
 	return (x + m) % m
 }
 
+func createWorld(height, width int) [][]byte {
+	world := make([][]byte, height)
+	for i := range world {
+		world[i] = make([]byte, width)
+	}
+	return world
+}
+
 func aliveNeighbours(world [][]byte, y, x int, p Params) int {
 	neighbours := 0
 	for i := -1; i < 2; i++ {
@@ -21,51 +29,37 @@ func aliveNeighbours(world [][]byte, y, x int, p Params) int {
 	return neighbours
 }
 
-func splitWorld(world [][]byte, workerHeight int, p Params, currentThread int) [][]byte {
-	tempWorld := make([][]byte, workerHeight+2)
-	for row := range tempWorld {
-		tempWorld[row] = make([]byte, p.ImageWidth)
+func splitWorld(world [][]byte, workerHeight, workerHeightWithRemainder, currentThread, turn int, p Params) [][]byte {
+
+	var splitHeight int
+
+	if currentThread == (p.Threads - 1) {
+		splitHeight = workerHeightWithRemainder
+	} else {
+		splitHeight = workerHeight
 	}
+
+	tempWorld := createWorld(splitHeight+2, p.ImageWidth)
 
 	for x := 0; x < p.ImageWidth; x++ {
 		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
 		tempWorld[0][x] = world[previousRow][x]
 	}
 	for x := 0; x < p.ImageWidth; x++ {
-		nextRow := ((currentThread+1)*workerHeight + p.ImageHeight) % p.ImageHeight
-		tempWorld[workerHeight+1][x] = world[nextRow][x]
+		var nextRow int
+		if currentThread == (p.Threads - 1) {
+			nextRow = 0
+		} else {
+			nextRow = ((currentThread+1)*workerHeight + p.ImageHeight) % p.ImageHeight
+		}
+		tempWorld[splitHeight+1][x] = world[nextRow][x]
 	}
-	for y := 1; y <= workerHeight; y++ {
+	for y := 1; y <= splitHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			currentRow := currentThread*workerHeight + y - 1
 			tempWorld[y][x] = world[currentRow][x]
 		}
 	}
-
-	return tempWorld
-}
-
-func splitWorldLastThread(world [][]byte, workerHeight, workerHeightWithRemainder int, p Params, currentThread int) [][]byte {
-	tempWorld := make([][]byte, workerHeightWithRemainder+2)
-	for row := range tempWorld {
-		tempWorld[row] = make([]byte, p.ImageWidth)
-	}
-
-	for x := 0; x < p.ImageWidth; x++ {
-		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
-		tempWorld[0][x] = world[previousRow][x]
-	}
-	for x := 0; x < p.ImageWidth; x++ {
-		nextRow := 0
-		tempWorld[workerHeightWithRemainder+1][x] = world[nextRow][x]
-	}
-	for y := 1; y <= workerHeightWithRemainder; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			currentRow := currentThread*workerHeight + y - 1
-			tempWorld[y][x] = world[currentRow][x]
-		}
-	}
-
 	return tempWorld
 }
 
