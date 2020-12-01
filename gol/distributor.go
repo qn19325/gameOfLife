@@ -31,12 +31,10 @@ func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut
 					tempWorld[y][x] = 255
 				} else {
 					tempWorld[y][x] = 0
-					// c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
 				}
 			} else {
 				if numAliveNeighbours == 3 {
 					tempWorld[y][x] = 255
-					// c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
 				} else {
 					tempWorld[y][x] = 0
 				}
@@ -172,8 +170,6 @@ func distributor(p Params, c distributorChannels) {
 					}
 				}
 			}
-
-			// fmt.Println("Y: ", y)
 		}
 		c.events <- TurnComplete{turns}
 	}
