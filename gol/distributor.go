@@ -2,7 +2,6 @@ package gol
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"uk.ac.bris.cs/gameoflife/util"
@@ -90,6 +89,26 @@ func distributor(p Params, c distributorChannels) {
 	for turns := 0; turns < p.Turns; turns++ {
 
 		select {
+		case pressed := <-c.keyPresses:
+			if pressed == 's' {
+				outputPGM(world, c, p, turns)
+			} else if pressed == 'q' {
+				outputPGM(world, c, p, turns)
+				c.events <- StateChange{CompletedTurns: turns, NewState: Quitting}
+				c.ioCommand <- ioCheckIdle
+				<-c.ioIdle
+				close(c.events)
+				return
+			} else if pressed == 'p' {
+				c.events <- StateChange{CompletedTurns: turns, NewState: Paused}
+				for {
+					tempKey := <-c.keyPresses
+					if tempKey == 'p' {
+						c.events <- StateChange{CompletedTurns: turns, NewState: Executing}
+						break
+					}
+				}
+			}
 		case <-ticker.C:
 			aliveCellsNum := 0
 			for y := 0; y < p.ImageHeight; y++ {
@@ -103,24 +122,6 @@ func distributor(p Params, c distributorChannels) {
 			c.events <- AliveCellsCount{
 				CompletedTurns: turns,
 				CellsCount:     aliveCellsNum,
-			}
-		case pressed := <-c.keyPresses:
-			if pressed == 's' {
-				outputPGM(world, c, p, turns)
-			} else if pressed == 'q' {
-				outputPGM(world, c, p, turns)
-				c.events <- StateChange{CompletedTurns: turns, NewState: Quitting}
-				os.Exit(0)
-				return
-			} else if pressed == 'p' {
-				c.events <- StateChange{CompletedTurns: turns, NewState: Paused}
-				for {
-					tempKey := <-c.keyPresses
-					if tempKey == 'p' {
-						c.events <- StateChange{CompletedTurns: turns, NewState: Executing}
-						break
-					}
-				}
 			}
 		default:
 		}
@@ -181,8 +182,9 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	outputPGM(world, c, p, p.Turns)
 	c.events <- FinalTurnComplete{p.Turns, finalAliveCells}
+
+	outputPGM(world, c, p, p.Turns)
 
 	// TODO: Execute all turns of the Game of Life.
 
@@ -196,16 +198,4 @@ func distributor(p Params, c distributorChannels) {
 	c.events <- StateChange{p.Turns, Quitting}
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
-}
-
-func outputPGM(world [][]byte, c distributorChannels, p Params, turn int) {
-	c.ioCommand <- ioCommand(ioOutput)
-	outputFilename := fmt.Sprintf("%dx%dx%d", p.ImageHeight, p.ImageWidth, turn)
-	c.ioFilename <- outputFilename
-	for y := 0; y < p.ImageHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			c.ioOutput <- world[y][x]
-		}
-	}
-
 }

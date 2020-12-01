@@ -1,5 +1,7 @@
 package gol
 
+import "fmt"
+
 func mod(x, m int) int {
 	return (x + m) % m
 }
@@ -65,4 +67,18 @@ func splitWorldLastThread(world [][]byte, workerHeight, workerHeightWithRemainde
 	}
 
 	return tempWorld
+}
+
+func outputPGM(world [][]byte, c distributorChannels, p Params, turn int) {
+	c.ioCommand <- ioCommand(ioOutput)
+	outputFileName := fmt.Sprintf("%dx%dx%d", p.ImageHeight, p.ImageWidth, turn)
+	c.ioFilename <- outputFileName
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			c.ioOutput <- world[y][x]
+		}
+	}
+	c.ioCommand <- ioCheckIdle
+	<-c.ioIdle
+	c.events <- ImageOutputComplete{turn, outputFileName}
 }
