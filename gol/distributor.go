@@ -2,8 +2,7 @@ package gol
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
+	"os"
 	"time"
 
 	"uk.ac.bris.cs/gameoflife/util"
@@ -110,15 +109,15 @@ func distributor(p Params, c distributorChannels) {
 				outputPGM(world, c, p, turns)
 			} else if pressed == 'q' {
 				outputPGM(world, c, p, turns)
-				fmt.Println("Terminated.")
+				c.events <- StateChange{CompletedTurns: turns, NewState: Quitting}
+				os.Exit(0)
 				return
 			} else if pressed == 'p' {
-				fmt.Println("Current turn:", turns)
-				fmt.Println("Pausing.")
+				c.events <- StateChange{CompletedTurns: turns, NewState: Paused}
 				for {
 					tempKey := <-c.keyPresses
 					if tempKey == 'p' {
-						fmt.Println("Continuing.")
+						c.events <- StateChange{CompletedTurns: turns, NewState: Executing}
 						break
 					}
 				}
@@ -169,7 +168,6 @@ func distributor(p Params, c distributorChannels) {
 				}
 			}
 		}
-
 		c.events <- TurnComplete{turns}
 	}
 
@@ -183,6 +181,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
+	outputPGM(world, c, p, p.Turns)
 	c.events <- FinalTurnComplete{p.Turns, finalAliveCells}
 
 	// TODO: Execute all turns of the Game of Life.
@@ -201,10 +200,12 @@ func distributor(p Params, c distributorChannels) {
 
 func outputPGM(world [][]byte, c distributorChannels, p Params, turn int) {
 	c.ioCommand <- ioCommand(ioOutput)
-	c.ioFilename <- strings.Join([]string{strconv.Itoa(p.ImageWidth), strconv.Itoa(p.ImageHeight), strconv.Itoa(turn)}, "x")
+	outputFilename := fmt.Sprintf("%dx%dx%d", p.ImageHeight, p.ImageWidth, turn)
+	c.ioFilename <- outputFilename
 	for y := 0; y < p.ImageHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			c.ioOutput <- world[y][x]
 		}
 	}
+
 }
