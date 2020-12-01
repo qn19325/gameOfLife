@@ -162,7 +162,7 @@ func distributor(p Params, c distributorChannels) {
 			}
 			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {
-					worldY := thread*splitHeight + y
+					worldY := thread*workerHeight + y
 
 					if world[worldY][x] != newSplit[y][x] {
 						world[worldY][x] = newSplit[y][x]
