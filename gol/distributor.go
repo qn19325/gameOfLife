@@ -2,6 +2,8 @@ package gol
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"uk.ac.bris.cs/gameoflife/util"
@@ -14,6 +16,7 @@ type distributorChannels struct {
 	ioFilename chan<- string
 	ioOutput   chan<- uint8
 	ioInput    <-chan uint8
+	keyPresses <-chan rune
 }
 
 func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut chan<- byte, workerHeight int) {
@@ -86,6 +89,7 @@ func distributor(p Params, c distributorChannels) {
 	ticker := time.NewTicker(2 * time.Second)
 
 	for turns := 0; turns < p.Turns; turns++ {
+
 		select {
 		case <-ticker.C:
 			aliveCellsNum := 0
@@ -101,7 +105,24 @@ func distributor(p Params, c distributorChannels) {
 				CompletedTurns: turns,
 				CellsCount:     aliveCellsNum,
 			}
-
+		case pressed := <-c.keyPresses:
+			if pressed == 's' {
+				outputPGM(world, c, p, turns)
+			} else if pressed == 'q' {
+				outputPGM(world, c, p, turns)
+				fmt.Println("Terminated.")
+				return
+			} else if pressed == 'p' {
+				fmt.Println("Current turn:", turns)
+				fmt.Println("Pausing.")
+				for {
+					tempKey := <-c.keyPresses
+					if tempKey == 'p' {
+						fmt.Println("Continuing.")
+						break
+					}
+				}
+			}
 		default:
 		}
 
@@ -176,4 +197,14 @@ func distributor(p Params, c distributorChannels) {
 	c.events <- StateChange{p.Turns, Quitting}
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
+}
+
+func outputPGM(world [][]byte, c distributorChannels, p Params, turn int) {
+	c.ioCommand <- ioCommand(ioOutput)
+	c.ioFilename <- strings.Join([]string{strconv.Itoa(p.ImageWidth), strconv.Itoa(p.ImageHeight), strconv.Itoa(turn)}, "x")
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			c.ioOutput <- world[y][x]
+		}
+	}
 }
