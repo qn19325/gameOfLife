@@ -26,17 +26,17 @@ func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut
 	for y := 1; y <= workerHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			numAliveNeighbours := aliveNeighbours(world, y, x, p)
-			if world[y][x] != 0 {
+			if world[y][x] == 255 {
 				if numAliveNeighbours == 2 || numAliveNeighbours == 3 {
 					tempWorld[y][x] = 255
 				} else {
 					tempWorld[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
+					// c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
 				}
 			} else {
 				if numAliveNeighbours == 3 {
 					tempWorld[y][x] = 255
-					c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
+					// c.events <- CellFlipped{turn, util.Cell{Y: y, X: x}}
 				} else {
 					tempWorld[y][x] = 0
 				}
@@ -152,7 +152,6 @@ func distributor(p Params, c distributorChannels) {
 			} else {
 				splitHeight = workerHeight
 			}
-
 			newSplit := make([][]byte, splitHeight)
 			for i := range newSplit {
 				newSplit[i] = make([]byte, p.ImageWidth)
@@ -165,9 +164,16 @@ func distributor(p Params, c distributorChannels) {
 			}
 			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {
-					world[thread*workerHeight+y][x] = newSplit[y][x]
+					worldY := thread*splitHeight + y
+
+					if world[worldY][x] != newSplit[y][x] {
+						world[worldY][x] = newSplit[y][x]
+						c.events <- CellFlipped{turn, util.Cell{Y: worldY, X: x}}
+					}
 				}
 			}
+
+			// fmt.Println("Y: ", y)
 		}
 		c.events <- TurnComplete{turns}
 	}
