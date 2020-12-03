@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
@@ -49,7 +48,7 @@ func (io *ioState) writePgmImage() {
 	defer file.Close()
 
 	_, _ = file.WriteString("P5\n")
-	_, _ = file.WriteString("# PGM file writer by pnmmodules (https://github.com/owainkenwayucl/pnmmodules).\n")
+	//_, _ = file.WriteString("# PGM file writer by pnmmodules (https://github.com/owainkenwayucl/pnmmodules).\n")
 	_, _ = file.WriteString(strconv.Itoa(io.params.ImageWidth))
 	_, _ = file.WriteString(" ")
 	_, _ = file.WriteString(strconv.Itoa(io.params.ImageHeight))
@@ -65,9 +64,9 @@ func (io *ioState) writePgmImage() {
 	for y := 0; y < io.params.ImageHeight; y++ {
 		for x := 0; x < io.params.ImageWidth; x++ {
 			val := <-io.channels.output
-			if val != 0 {
-				fmt.Println(x, y)
-			}
+			//if val != 0 {
+			//	fmt.Println(x, y)
+			//}
 			world[y][x] = val
 		}
 	}
