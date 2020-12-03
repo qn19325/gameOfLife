@@ -31,7 +31,7 @@ You **must not** modify any of the files ending in `_test.go`. We will be using 
 
 The skeleton code starts three goroutines. The diagram below shows how they should interact with each other (for the parallel implementation). Note that not all channels linking IO and the Distributor have been initialised for you. You will need to make them and add them to respective structs.
 
-![Goroutines](content/goroutines.png)
+![Goroutines](goroutines.png)
 
 The skeleton code uses SDL. This is a basic graphics library which you already used in Imperative Programming unit. To install the library follow the following instructions:
 
