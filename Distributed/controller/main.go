@@ -12,7 +12,7 @@ import (
 func main() {
 	runtime.LockOSThread()
 	var params gol.Params
-
+	
 	flag.IntVar(
 		&params.Threads,
 		"t",
