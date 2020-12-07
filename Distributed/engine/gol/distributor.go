@@ -1,16 +1,13 @@
 package gol
 
 import (
-	"fmt"
-
 	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, world [][]byte) {
 
-	// TODO: For all initially alive cells send a CellFlipped Event.
-
+	/* dont need this as going to pass in inital world from controller
 	turn := 0
 
 	currentAliveCells := make([]util.Cell, 0) // create aliveCells slice
@@ -23,13 +20,16 @@ func distributor(p Params, c distributorChannels, world [][]byte) {
 			}
 		}
 	}
+	-------LOOK IN HELPER-------*/
 
+	// create slice to store next state of the world
 	tempWorld := make([][]byte, p.ImageHeight)
 	for i := range world {
 		tempWorld[i] = make([]byte, p.ImageWidth)
 	}
 
 	for turns := 0; turns < p.Turns; turns++ {
+		/* -------should be in controller?-------
 		select {
 		case pressed := <-c.keyPresses:
 			if pressed == 's' {
@@ -67,6 +67,7 @@ func distributor(p Params, c distributorChannels, world [][]byte) {
 			}
 		default:
 		}
+		*/
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
 				numAliveNeighbours := aliveNeighbours(world, y, x, p)
@@ -87,12 +88,6 @@ func distributor(p Params, c distributorChannels, world [][]byte) {
 				}
 			}
 		}
-		for y := 0; y < p.ImageHeight; y++ {
-			for x := 0; x < p.ImageWidth; x++ {
-				if world[y][x] != tempWorld[y][x] {
-					world[y][x] = tempWorld[y][x]
-				}
-			}
-		}
+		return
 	}
 }

@@ -18,3 +18,6 @@ func aliveNeighbours(world [][]byte, y, x int, p Params) int {
 	}
 	return neighbours
 }
+
+// need a function to calcualate the number of alive cells to send
+// in response to request from controller
