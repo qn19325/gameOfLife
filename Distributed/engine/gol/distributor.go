@@ -5,22 +5,7 @@ import (
 )
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels, world [][]byte) {
-
-	/* dont need this as going to pass in inital world from controller
-	turn := 0
-
-	currentAliveCells := make([]util.Cell, 0) // create aliveCells slice
-	for y := 0; y < p.ImageHeight; y++ {      // go through all cells in world
-		for x := 0; x < p.ImageWidth; x++ {
-			val := <-c.ioInput
-			if val != 0 {
-				currentAliveCells = append(currentAliveCells, util.Cell{X: x, Y: y}) // adds current cell to the aliveCells slice
-				world[y][x] = 1                                                      // update value of current cell
-			}
-		}
-	}
-	-------LOOK IN HELPER-------*/
+func distributor(p Params, world [][]byte) {
 
 	// create slice to store next state of the world
 	tempWorld := make([][]byte, p.ImageHeight)
@@ -29,45 +14,6 @@ func distributor(p Params, c distributorChannels, world [][]byte) {
 	}
 
 	for turns := 0; turns < p.Turns; turns++ {
-		/* -------should be in controller?-------
-		select {
-		case pressed := <-c.keyPresses:
-			if pressed == 's' {
-				outputPGM(world, c, p, turns)
-			} else if pressed == 'q' {
-				outputPGM(world, c, p, turns)
-				c.events <- StateChange{CompletedTurns: turns, NewState: Quitting}
-				c.ioCommand <- ioCheckIdle
-				<-c.ioIdle
-				close(c.events)
-				return
-			} else if pressed == 'p' {
-				c.events <- StateChange{CompletedTurns: turns, NewState: Paused}
-				for {
-					tempKey := <-c.keyPresses
-					if tempKey == 'p' {
-						c.events <- StateChange{CompletedTurns: turns, NewState: Executing}
-						break
-					}
-				}
-			}
-		case <-ticker.C:
-			aliveCellsNum := 0
-			for y := 0; y < p.ImageHeight; y++ {
-				for x := 0; x < p.ImageWidth; x++ {
-					if world[y][x] == 255 {
-						aliveCellsNum++
-					}
-				}
-			}
-
-			c.events <- AliveCellsCount{
-				CompletedTurns: turns,
-				CellsCount:     aliveCellsNum,
-			}
-		default:
-		}
-		*/
 		for y := 0; y < p.ImageHeight; y++ {
 			for x := 0; x < p.ImageWidth; x++ {
 				numAliveNeighbours := aliveNeighbours(world, y, x, p)
@@ -88,6 +34,6 @@ func distributor(p Params, c distributorChannels, world [][]byte) {
 				}
 			}
 		}
-		return
 	}
+	return tempWorld
 }

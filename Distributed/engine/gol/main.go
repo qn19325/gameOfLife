@@ -19,14 +19,16 @@ type args struct {
 
 // -----Run function-----
 // starts the distributor function with world and number of turns
-func (engine *Engine) Run(args Args, reply *[][]byte) error {
-	go distributor(args.p, args.c, args.world)
+func (engine *Engine) Run(args stubs.Request, reply stubs.Response) (err error) {
+	reply.world = distributor(args.p, args.world)
+	return
 }
 
 // function to send current world to client
-func (engine *Engine) getCurrentWorld()
 
 // function to get current turn
+
+// function to send number of alive cells
 
 // main is the function called when starting Game of Life with 'go run .'
 func main() {
