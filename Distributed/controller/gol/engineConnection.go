@@ -66,12 +66,12 @@ func engineConnection(p Params, c distributorChannels) {
 		}
 	}
 
+	// connect to engine
 	server := flag.String("server", "127.0.0.1:8030", "IP:port string to connect to as server")
 	client, error := rpc.Dial("tcp", *server)
 	if error != nil {
 		log.Fatal("Unable to connect", error)
 	}
-
 	// Send specified number of turns to engine
 
 	// Send intial world to server
