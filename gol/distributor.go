@@ -129,20 +129,25 @@ func distributor(p Params, c distributorChannels) {
 			var currentSplit [][]byte
 			workerOut[thread] = make(chan byte)
 
+			var splitHeight int
 			if remainderHeight > 0 {
-				currentSplit = splitWorld(world, workerHeight+1, thread, turns, p)
-				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight+1)
-				WorkerStartHeight += workerHeight + 1
+				splitHeight = workerHeight + 1
 			} else {
-				currentSplit = splitWorld(world, workerHeight, thread, turns, p)
-				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight)
-				WorkerStartHeight += workerHeight
+				splitHeight = workerHeight
 			}
+
+			currentSplit = splitWorld(world, splitHeight, thread, turns, p)
+			go worker(currentSplit, p, c, turns, workerOut[thread], splitHeight)
+
+			WorkerStartHeight += splitHeight
+			remainderHeight--
 		}
+		remainderHeight = p.ImageHeight % p.Threads
+		WorkerStartHeight = 0
 		for thread := 0; thread < p.Threads; thread++ {
 			var splitHeight int
-			if thread == (p.Threads - 1) {
-				splitHeight = workerHeight + remainderHeight
+			if remainderHeight > 0 {
+				splitHeight = workerHeight + 1
 			} else {
 				splitHeight = workerHeight
 			}
@@ -155,7 +160,7 @@ func distributor(p Params, c distributorChannels) {
 			}
 			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {
-					worldY := thread*workerHeight + y
+					worldY := WorkerStartHeight + y
 
 					if world[worldY][x] != newSplit[y][x] {
 						world[worldY][x] = newSplit[y][x]
@@ -163,6 +168,8 @@ func distributor(p Params, c distributorChannels) {
 					}
 				}
 			}
+			remainderHeight--
+			WorkerStartHeight += splitHeight
 		}
 		c.events <- TurnComplete{turns}
 	}
