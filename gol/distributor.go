@@ -17,6 +17,8 @@ type distributorChannels struct {
 	keyPresses <-chan rune
 }
 
+var WorkerStartHeight int
+
 func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut chan<- byte, workerHeight int) {
 	tempWorld := createWorld(p.ImageHeight+2, p.ImageWidth)
 
@@ -121,21 +123,21 @@ func distributor(p Params, c distributorChannels) {
 		workerOut := make([]chan byte, p.Threads)
 		workerHeight := p.ImageHeight / p.Threads
 		remainderHeight := p.ImageHeight % p.Threads
+		WorkerStartHeight = 0
 
 		for thread := 0; thread < p.Threads; thread++ {
 			var currentSplit [][]byte
-
-			workerHeightWithRemainder := workerHeight + remainderHeight
 			workerOut[thread] = make(chan byte)
 
-			currentSplit = splitWorld(world, workerHeight, workerHeightWithRemainder, thread, turns, p)
-
-			if thread == p.Threads-1 {
-				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeightWithRemainder)
+			if remainderHeight > 0 {
+				currentSplit = splitWorld(world, workerHeight+1, thread, turns, p)
+				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight+1)
+				WorkerStartHeight += workerHeight + 1
 			} else {
+				currentSplit = splitWorld(world, workerHeight, thread, turns, p)
 				go worker(currentSplit, p, c, turns, workerOut[thread], workerHeight)
+				WorkerStartHeight += workerHeight
 			}
-
 		}
 		for thread := 0; thread < p.Threads; thread++ {
 			var splitHeight int
@@ -144,10 +146,7 @@ func distributor(p Params, c distributorChannels) {
 			} else {
 				splitHeight = workerHeight
 			}
-			newSplit := make([][]byte, splitHeight)
-			for i := range newSplit {
-				newSplit[i] = make([]byte, p.ImageWidth)
-			}
+			newSplit := createWorld(splitHeight, p.ImageWidth)
 
 			for y := 0; y < splitHeight; y++ {
 				for x := 0; x < p.ImageWidth; x++ {

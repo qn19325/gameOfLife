@@ -29,34 +29,20 @@ func aliveNeighbours(world [][]byte, y, x int, p Params) int {
 	return neighbours
 }
 
-func splitWorld(world [][]byte, workerHeight, workerHeightWithRemainder, currentThread, turn int, p Params) [][]byte {
-
-	var splitHeight int
-
-	if currentThread == (p.Threads - 1) {
-		splitHeight = workerHeightWithRemainder
-	} else {
-		splitHeight = workerHeight
-	}
-
+func splitWorld(world [][]byte, splitHeight, currentThread, turn int, p Params) [][]byte {
 	tempWorld := createWorld(splitHeight+2, p.ImageWidth)
 
 	for x := 0; x < p.ImageWidth; x++ {
-		previousRow := (currentThread*workerHeight + p.ImageHeight - 1) % p.ImageHeight
+		previousRow := (WorkerStartHeight + p.ImageHeight - 1) % p.ImageHeight
 		tempWorld[0][x] = world[previousRow][x]
 	}
 	for x := 0; x < p.ImageWidth; x++ {
-		var nextRow int
-		if currentThread == (p.Threads - 1) {
-			nextRow = 0
-		} else {
-			nextRow = ((currentThread+1)*workerHeight + p.ImageHeight) % p.ImageHeight
-		}
+		nextRow := (WorkerStartHeight + splitHeight + p.ImageHeight) % p.ImageHeight
 		tempWorld[splitHeight+1][x] = world[nextRow][x]
 	}
 	for y := 1; y <= splitHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
-			currentRow := currentThread*workerHeight + y - 1
+			currentRow := WorkerStartHeight + y - 1
 			tempWorld[y][x] = world[currentRow][x]
 		}
 	}
