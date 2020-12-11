@@ -21,7 +21,7 @@ type distributorChannels struct {
 var WorkerStartHeight int
 
 // Worker function that calculates the new state of each cell within it's boundaries
-func worker(world [][]byte, p Params, c distributorChannels, turn int, workerOut chan<- byte, workerHeight int) {
+func worker(world [][]byte, p Params, c distributorChannels, workerOut chan<- byte, workerHeight int) {
 	// Create a temporary empty world
 	tempWorld := createWorld(p.ImageHeight+2, p.ImageWidth)
 
@@ -161,7 +161,7 @@ func distributor(p Params, c distributorChannels) {
 			// Split the world up into similar sized sections and receive the current split
 			currentSplit := splitWorld(world, splitHeight, thread, turn, p)
 			// Send that section to the worker to be processed
-			go worker(currentSplit, p, c, turn, workerOut[thread], splitHeight)
+			go worker(currentSplit, p, c, workerOut[thread], splitHeight)
 
 			// Increment the WorkerStartHeight so it's ready for the next section
 			WorkerStartHeight += splitHeight
